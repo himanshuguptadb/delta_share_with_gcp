@@ -20,7 +20,7 @@ Purpose of this solution is demostrate incremental data ingestion from delta sha
 ![alt text](https://github.com/himanshuguptadb/delta_share_with_gcp/blob/main/Incremental_Load.png?raw=true)
 
 ## Execution
-For the first time load, provider must share the latest table version. 
+For the first time load, provider must share the latest table version.  
 Submit a Dataproc Job with bellow configurations
 - Job Type = Pyspark
 - Cluster = Choose the one you have created above. Cluster should be in running state
