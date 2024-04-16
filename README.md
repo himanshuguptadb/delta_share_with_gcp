@@ -3,9 +3,9 @@
 Purpose of this solution is demostrate incremental data ingestion from delta share into Google cloud Big Query using Dataproc.
 
 ## Prerequisite / Setup
-a. Setup a delta share. In this solution, I have used customer churn dataset.
-    Create the table, enable CDC, insert data and create the share
-b. Setup a recepient and generate the credentials file.
+- a. Setup a delta share. In this solution, I have used customer churn dataset.
+    - Create the table, enable CDC, insert data and create the share
+- b. Setup a recepient and generate the credentials file.
 c. Create a single node Dataproc cluster and specify python package dependencies by setting up the properties as below
     dataproc:pip.packages = delta-sharing==1.0.3,google-cloud-bigquery==3.20.1
 d. Create a bigquery dataset (equivalent to a database or schema)
