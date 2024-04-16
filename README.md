@@ -13,5 +13,8 @@ e. Create the "job_reference_table" in bigquery dataset. This table will be used
 f. Create a Google storage bucket to store credential file generated above and store the python program
 g. Create a Google Storage bucket required for query bigquery using spark or pandas API.
 
-## First time load
+## First time load logic
 ![alt text](https://github.com/himanshuguptadb/delta_share_with_gcp/blob/main/First_Time_Load.png?raw=true)
+
+## Incremental load logic
+![alt text](https://github.com/himanshuguptadb/delta_share_with_gcp/blob/main/Incremental_Load.png?raw=true)
