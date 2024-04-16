@@ -22,8 +22,8 @@ Purpose of this solution is demostrate incremental data ingestion from delta sha
 ## Execution
 For the first time load, provider must share the latest table version. 
 Submit a Dataproc Job with bellow configurations
-    - Job Type = Pyspark
-    - Cluster = Choose the one you have created above. Cluster should be in running state
+- Job Type = Pyspark
+- Cluster = Choose the one you have created above. Cluster should be in running state
     - Main python file = gd bucket path to the python program
     - Jar files = gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.23.2.jar
     - Properties = spark.jars.packages - io.delta:delta-sharing-spark_2.12:0.6.4
