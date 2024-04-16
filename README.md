@@ -1,0 +1,1 @@
+# delta_share_with_gcp
