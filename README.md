@@ -26,11 +26,11 @@ Submit a Dataproc Job with bellow configurations
 - Cluster = Choose the one you have created above. Cluster should be in running state
 - Main python file = gd bucket path to the python program
 - Jar files = gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.23.2.jar
-- Properties
-      - spark.jars.packages - io.delta:delta-sharing-spark_2.12:0.6.4
-      -- spark.executorEnv.bucket - <bucket name>
-      - spark.executorEnv.share_file_path - <gc path to where share file is stored>
-      - spark.executorEnv.share_table_name - <delta share schema>
-      - spark.executorEnv.gcp_project_dataset - <gcp database>
+- Properties  
+      - spark.jars.packages - io.delta:delta-sharing-spark_2.12:0.6.4  
+      - spark.executorEnv.bucket - <bucket name>  
+      - spark.executorEnv.share_file_path - <gc path to where share file is stored>  
+      - spark.executorEnv.share_table_name - <delta share schema>  
+      - spark.executorEnv.gcp_project_dataset - <gcp database> 
     
     
