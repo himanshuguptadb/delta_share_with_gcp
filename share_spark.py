@@ -23,7 +23,7 @@ spark.conf.set('temporaryGcsBucket', bucket)
 
 #share_file_path = 'gs://himanshu-fe-bucket/config.share'
 # Default first time load settings
-first_time_load_version = 0
+first_time_load_version = 1
 first_time_load = "N"
 
 #Dataframe structure for job reference table
@@ -31,7 +31,9 @@ job_reference_struct = StructType([
     StructField('share_name', StringType(), True),
     StructField('date_loaded', TimestampType(), True),
     StructField('status', StringType(), True),
-    StructField('version_number', IntegerType(), True)
+    StructField('version_number', IntegerType(), True),
+    StructField('records_merged', IntegerType(), True),
+    StructField('records_deleted', IntegerType(), True)
     ])
 
 ######Check if this is first time load or incremental#####
@@ -58,8 +60,9 @@ table_url = f"{share_file_path}#{share_table_name}"
 if first_time_load=="Y":
   print("First time load")
   shared_df = delta_sharing.load_as_spark(table_url, version=starting_version)
+  merge_count = shared_df.count()
   shared_df.write.format('bigquery').option('table', f'{gcp_project_dataset}.churn_customers').mode("overwrite").save()
-  job_reference_DF = spark.createDataFrame(data=[(share_table_name, datetime.now(), "SUCCESS", starting_version)], schema=job_reference_struct)
+  job_reference_DF = spark.createDataFrame(data=[(share_table_name, datetime.now(), "SUCCESS", starting_version,merge_count,0)], schema=job_reference_struct)
   job_reference_DF.write.format('bigquery').option('table', f'{gcp_project_dataset}.job_reference_table').mode("append").save()
 else:
   print("Incremental Load")
@@ -71,15 +74,15 @@ else:
   incr_version = shared_df.agg({"share_commit_version": "max"}).collect()[0]['max(share_commit_version)']
   if incr_version == starting_version:
       print("Nothing New to Load")
-      job_reference_DF = spark.createDataFrame(data=[(share_table_name, datetime.now(), "Nothing New to Load", incr_version)],
+      job_reference_DF = spark.createDataFrame(data=[(share_table_name, datetime.now(), "Nothing New to Load", incr_version,0,0)],
                                                schema=job_reference_struct)
       job_reference_DF.write.format('bigquery').option('table',
                                                        f'{gcp_project_dataset}.job_reference_table').mode(
           "append").save()
   else:
       #truncating temp table"
-      truncate_query = f"truncate table {gcp_project_dataset}.churn_customers_incr"
-      truncate_table = client.query_and_wait(truncate_query)
+      #truncate_query = f"truncate table {gcp_project_dataset}.churn_customers_incr"
+      #truncate_table = client.query_and_wait(truncate_query)
       #removing the min inclusive version number
       shared_df = shared_df.filter(shared_df["share_commit_version"] != starting_version)
       #writing incremental data to temp table
@@ -117,6 +120,13 @@ FROM {gcp_project_dataset}.churn_customers_incr)  where rn=1 and share_change_ty
       total_charges = S.total_charges,
       churn = S.churn
       """
+
+      merge_count_query = f"""
+            select count(*) as total_merged from  {gcp_project_dataset}.churn_customers T, (SELECT *  FROM 
+      (SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY share_commit_version desc) as rn 
+      FROM {gcp_project_dataset}.churn_customers_incr)  where rn=1 and share_change_type in ("update_postimage", "insert")) S
+            where T.customer_id = S.customer_id
+            """
       #query to delete records based on cdc type
       delete_query = f"""
             delete from {gcp_project_dataset}.churn_customers T where T.customer_id in 
@@ -124,12 +134,25 @@ FROM {gcp_project_dataset}.churn_customers_incr)  where rn=1 and share_change_ty
       (SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY share_commit_version desc) as rn 
       FROM {gcp_project_dataset}.churn_customers_incr)  where rn=1 and share_change_type in ("delete"))
             """
+      delete_count_query = f"""
+                  select count(*) as total_deleted from 
+            (SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY share_commit_version desc) as rn 
+            FROM {gcp_project_dataset}.churn_customers_incr)  where rn=1 and share_change_type in ("delete")
+                  """
       #executing merge and delte queries
       merge_rows = client.query_and_wait(merge_query)  # Make an API request.
       delete_rows = client.query_and_wait(delete_query)  # Make an API request.
+      merge_count = client.query_and_wait(merge_count_query)  # Make an API request.
+      delete_count = client.query_and_wait(delete_count_query)  # Make an API request.
+
+      for row in merge_count:
+          merged_count = row["total_merged"]
+
+      for row in delete_count:
+          delete_count = row["total_deleted"]
 
       #inserting job status in reference table
-      job_reference_DF = spark.createDataFrame(data=[(share_table_name, datetime.now(), "SUCCESS", incr_version)],
+      job_reference_DF = spark.createDataFrame(data=[(share_table_name, datetime.now(), "SUCCESS", incr_version,merged_count,delete_count)],
                                            schema=job_reference_struct)
       job_reference_DF.write.format('bigquery').option('table', f'{gcp_project_dataset}.job_reference_table').mode(
       "append").save()
